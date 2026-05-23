@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>simulateur-bts-cg-complet</title>
+  <style>
+    :root {
+      --bg:#0f1220; --panel:#171b2e; --panel-2:#1e2440; --text:#eef2ff; --muted:#aeb7d6;
+      --primary:#5dd6c0; --primary-2:#30b8a0; --ok:#69d07d; --warn:#f3c969; --bad:#f28ea8;
+      --border:#2b3359; --chip:#232a47; --shadow:0 12px 40px rgba(0,0,0,.28); --radius:18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg, #0c1020, #141935 55%, #101423);
+      color:var(--text); min-height:100vh;
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    .hero { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:20px; }
+    .title h1 { margin:0 0 8px; font-size: clamp(1.8rem, 2.8vw, 2.6rem); }
+    .title p { margin:0; color:var(--muted); max-width:72ch; }
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border:1px solid var(--border); border-radius:999px; background:rgba(255,255,255,.03); color:var(--muted); font-size:.95rem; }
+    .grid { display:grid; grid-template-columns: 1.15fr .85fr; gap:20px; }
+    .card { background: rgba(23,27,46,.88); border:1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding:18px; }
+    .card h2 { margin:0 0 14px; font-size:1.2rem; }
+    .sub { color:var(--muted); font-size:.95rem; margin-top:-6px; margin-bottom:14px; }
+    .table { display:grid; gap:10px; }
+    .row { display:grid; grid-template-columns: minmax(0,1.5fr) 90px 120px; gap:10px; align-items:end; padding:10px; background: rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.04); border-radius:14px; }
+    .row label { display:block; font-weight:700; margin-bottom:6px; }
+    .mini { color:var(--muted); font-size:.86rem; }
+    input[type="number"] {
+      width:100%; background:var(--panel-2); color:var(--text); border:1px solid var(--border); border-radius:12px;
+      padding:12px 14px; font-size:1rem; min-height:46px;
+    }
+    .coefbox { min-height:46px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:12px; background:var(--chip); color:var(--text); font-weight:700; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    button {
+      border:0; border-radius:12px; padding:12px 16px; min-height:46px; cursor:pointer; font-weight:700; font-size:.98rem;
+    }
+    .primary { background:linear-gradient(135deg,var(--primary),var(--primary-2)); color:#07131a; }
+    .secondary { background:var(--chip); color:var(--text); border:1px solid var(--border); }
+    .result { display:grid; gap:14px; }
+    .kpis { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; }
+    .kpi { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.05); border-radius:16px; padding:14px; }
+    .kpi .label { color:var(--muted); font-size:.88rem; margin-bottom:6px; }
+    .kpi .value { font-size:1.55rem; font-weight:800; }
+    .big { font-size: clamp(2rem, 4vw, 3rem); font-weight:900; }
+    .status { padding:14px 16px; border-radius:14px; font-weight:800; }
+    .status.ok { background:rgba(105,208,125,.12); border:1px solid rgba(105,208,125,.35); color:var(--ok); }
+    .status.warn { background:rgba(243,201,105,.12); border:1px solid rgba(243,201,105,.35); color:var(--warn); }
+    .status.bad { background:rgba(242,142,168,.12); border:1px solid rgba(242,142,168,.35); color:var(--bad); }
+    .status.neutral { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); color:var(--muted); }
+    .box { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.05); border-radius:16px; padding:14px; }
+    ul { margin:10px 0 0 18px; padding:0; }
+    li { margin:6px 0; color:var(--muted); }
+    .footerline { color:var(--muted); font-size:.9rem; margin-top:10px; }
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 620px) {
+      .row { grid-template-columns: 1fr; }
+      .kpis { grid-template-columns: 1fr; }
+      .hero { flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="title">
+        <h1>Simulateur complet BTS CG</h1>
+        <p>Renseigne tes notes, laisse vide celles que tu ne connais pas encore, et l’application calcule ta moyenne, les bonus d’options, l’admission directe ou le rattrapage.</p>
+      </div>
+      <div class="pill">BTS CG • Session 2026 • calcul instantané</div>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Épreuves</h2>
+        <div class="sub">Coefficients officiels du BTS CG totalisant 39 pour les épreuves obligatoires.</div>
+        <div class="table" id="table"></div>
+        <div class="actions">
+          <button class="primary" id="preset">Préremplir avec tes dernières estimations</button>
+          <button class="secondary" id="reset">Réinitialiser</button>
+        </div>
+        <div class="footerline">Options facultatives : seuls les points au-dessus de 10 s’ajoutent.</div>
+      </section>
+
+      <aside class="card">
+        <h2>Résultat</h2>
+        <div class="result">
+          <div class="box">
+            <div class="mini">Moyenne générale simulée</div>
+            <div class="big" id="average">--</div>
+          </div>
+          <div id="status" class="status neutral">Renseigne au moins une note.</div>
+          <div class="kpis">
+            <div class="kpi"><div class="label">Points</div><div class="value" id="points">--</div></div>
+            <div class="kpi"><div class="label">Coefficients</div><div class="value" id="coefs">--</div></div>
+            <div class="kpi"><div class="label">Bonus options</div><div class="value" id="bonus">0.00</div></div>
+          </div>
+          <div class="box">
+            <div class="mini">Épreuves pro</div>
+            <div class="value" id="proAvg" style="font-size:1.35rem;font-weight:800;margin-top:6px;">--</div>
+            <div class="footerline">Utilisé pour estimer l’accès au rattrapage.</div>
+          </div>
+          <div class="box">
+            <div class="mini">Lecture rapide</div>
+            <ul id="insights">
+              <li>Ajoute tes notes pour lancer la simulation.</li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script>
+const subjects = [
+  {id:'e1', label:'E1 • Culture générale et expression', coef:4, type:'general'},
+  {id:'e2', label:'E2 • Anglais obligatoire', coef:3, type:'general'},
+  {id:'e3', label:'E3 • Mathématiques appliquées', coef:3, type:'general'},
+  {id:'e4', label:'E4 • CEJM', coef:6, type:'general'},
+  {id:'e5', label:'E5 • Étude de cas', coef:9, type:'pro'},
+  {id:'e6', label:'E6 • Pratiques comptables, fiscales et sociales', coef:4, type:'pro'},
+  {id:'e7', label:'E7 • Contrôle de gestion et analyse financière', coef:5, type:'pro'},
+  {id:'e8', label:'E8 • Parcours de professionnalisation', coef:5, type:'pro'},
+  {id:'ef1', label:'EF1 • Créole / LV facultative', coef:0, optional:true},
+  {id:'ef3', label:'EF3 • Engagement étudiant', coef:0, optional:true}
+];
+
+const table = document.getElementById('table');
+subjects.forEach(s => {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `
+    <div>
+      <label for="${s.id}">${s.label}</label>
+      <div class="mini">${s.optional ? 'Bonus : seuls les points au-dessus de 10 sont ajoutés' : 'Coefficient ' + s.coef}</div>
+    </div>
+    <div>
+      <input id="${s.id}" type="number" min="0" max="20" step="0.25" placeholder="/20" />
+    </div>
+    <div class="coefbox">${s.optional ? 'bonus' : 'coef ' + s.coef}</div>
+  `;
+  table.appendChild(row);
+});
+
+function num(id){
+  const v = document.getElementById(id).value;
+  if(v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function fmt(n){ return n.toLocaleString('fr-FR',{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function setStatus(cls, txt){
+  const el = document.getElementById('status');
+  el.className = 'status ' + cls;
+  el.textContent = txt;
+}
+function calc(){
+  let points = 0, coefs = 0, bonus = 0;
+  let proPoints = 0, proCoefs = 0;
+  let filled = 0;
+  const known = [];
+
+  subjects.forEach(s => {
+    const n = num(s.id);
+    if(n === null) return;
+    filled++;
+    if(s.optional){
+      bonus += Math.max(0, n - 10);
+      known.push(`${s.label}: ${n}/20 (bonus ${fmt(Math.max(0, n-10))})`);
+    } else {
+      points += n * s.coef;
+      coefs += s.coef;
+      known.push(`${s.label}: ${n}/20 × ${s.coef}`);
+      if(s.type === 'pro'){
+        proPoints += n * s.coef;
+        proCoefs += s.coef;
+      }
+    }
+  });
+
+  document.getElementById('bonus').textContent = fmt(bonus);
+
+  if(filled === 0 || coefs === 0){
+    document.getElementById('average').textContent = '--';
+    document.getElementById('points').textContent = '--';
+    document.getElementById('coefs').textContent = '--';
+    document.getElementById('proAvg').textContent = '--';
+    document.getElementById('insights').innerHTML = '<li>Ajoute tes notes pour lancer la simulation.</li>';
+    setStatus('neutral', 'Renseigne au moins une note.');
+    return;
+  }
+
+  const totalPoints = points + bonus;
+  const avg = totalPoints / coefs;
+  const proAvg = proCoefs ? proPoints / proCoefs : null;
+
+  document.getElementById('average').textContent = fmt(avg) + ' / 20';
+  document.getElementById('points').textContent = fmt(totalPoints);
+  document.getElementById('coefs').textContent = coefs;
+  document.getElementById('proAvg').textContent = proAvg === null ? '--' : fmt(proAvg) + ' / 20';
+
+  if(avg >= 10){
+    setStatus('ok', 'Admis direct dans cette simulation.');
+  } else if(avg >= 8 && (proAvg !== null && proAvg >= 10)){
+    setStatus('warn', 'Zone rattrapage dans cette simulation.');
+  } else {
+    setStatus('bad', 'Sous les seuils d’admission et de rattrapage dans cette simulation.');
+  }
+
+  const need10 = Math.max(0, 10 * coefs - totalPoints);
+  const need12 = Math.max(0, 12 * coefs - totalPoints);
+  const need8 = Math.max(0, 8 * coefs - totalPoints);
+
+  const insights = [];
+  insights.push(`Moyenne générale simulée : ${fmt(avg)} / 20.`);
+  if(proAvg !== null) insights.push(`Moyenne des épreuves professionnelles : ${fmt(proAvg)} / 20.`);
+  if(need10 === 0) insights.push('Le seuil de 10 est atteint.'); else insights.push(`Il manque ${fmt(need10)} points pondérés pour atteindre 10.`);
+  if(avg < 8) insights.push(`Il manque ${fmt(need8)} points pondérés pour atteindre 8.`);
+  if(avg < 12) insights.push(`Il manque ${fmt(need12)} points pondérés pour atteindre 12.`);
+  if(bonus > 0) insights.push(`Les options ajoutent ${fmt(bonus)} points bonus.`);
+
+  document.getElementById('insights').innerHTML = insights.map(x => `<li>${x}</li>`).join('');
+}
+
+document.querySelectorAll('input[type="number"]').forEach(i => i.addEventListener('input', calc));
+
+document.getElementById('preset').addEventListener('click', () => {
+  const preset = {
+    e1:11, e2:6, e3:14, e4:12,
+    e5:7, e6:'', e7:7, e8:16,
+    ef1:15, ef3:''
+  };
+  Object.entries(preset).forEach(([k,v]) => document.getElementById(k).value = v);
+  calc();
+});
+
+document.getElementById('reset').addEventListener('click', () => {
+  document.querySelectorAll('input[type="number"]').forEach(i => i.value = '');
+  calc();
+});
+
+calc();
+</script>
+</body>
+</html>
